@@ -69,6 +69,8 @@
 #define INT8OID     20
 #define TEXTOID     25
 #define OIDOID      26
+#define FLOAT4OID   700
+#define FLOAT8OID   701
 
 #if ZEND_LONG_MAX < UINT_MAX
 #define PGSQL_RETURN_OID(oid) do { \
@@ -2541,6 +2543,18 @@ static inline void php_pgsql_get_field_value(zval *value, PGresult *pgsql_result
 			switch (pgsql_type) {
 				case BOOLOID:
 					ZVAL_BOOL(value, *element == 't');
+					break;
+				case FLOAT4OID:
+				case FLOAT8OID:
+					if (element_len == sizeof("Infinity") - 1 && strcmp(element, "Infinity") == 0) {
+						ZVAL_DOUBLE(value, ZEND_INFINITY);
+					} else if (element_len == sizeof("-Infinity") - 1 && strcmp(element, "-Infinity") == 0) {
+						ZVAL_DOUBLE(value, -ZEND_INFINITY);
+					} else if (element_len == sizeof("NaN") - 1 && strcmp(element, "NaN") == 0) {
+						ZVAL_DOUBLE(value, ZEND_NAN);
+					} else {
+						ZVAL_DOUBLE(value, zend_strtod(element, NULL));
+					}
 					break;
 				case OIDOID:
 				case INT2OID:
